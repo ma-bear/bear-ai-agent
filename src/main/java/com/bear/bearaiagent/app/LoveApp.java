@@ -1,6 +1,8 @@
 package com.bear.bearaiagent.app;
 
 import com.bear.bearaiagent.advisor.MyLoggerAdvisor;
+import com.bear.bearaiagent.rag.LoveAppRagCustomAdvisorFactory;
+import com.bear.bearaiagent.rag.QueryRewriter;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -58,6 +60,7 @@ public class LoveApp {
 
     record LoveReport(String title, List<String> suggestions) {
     }
+
     public LoveReport doChatWithReport(String message, String chatId) {
         LoveReport loveReport = chatClient
                 .prompt()
@@ -73,14 +76,22 @@ public class LoveApp {
     @Resource
     private VectorStore loveAppVectorStore;
 
-
     @Resource
     private Advisor loveAppRagCloudAdvisor;
 
+    @Resource
+    private VectorStore pgVectorVectorStore;
+
+
+    @Resource
+    private QueryRewriter queryRewriter;
+
     public String doChatWithRag(String message, String chatId) {
+        // 查询重写
+        String rewrittenMessage = queryRewriter.doQueryRewrite(message);
         ChatResponse chatResponse = chatClient
                 .prompt()
-                .user(message)
+                .user(rewrittenMessage)
                 .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
                 // 开启日志，便于观察效果
                 .advisors(new MyLoggerAdvisor())
@@ -88,6 +99,14 @@ public class LoveApp {
 //                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
                 // 应用增强检索服务（云知识库服务）
                 .advisors(loveAppRagCloudAdvisor)
+                // 应用 RAG 检索增强服务（基于 PgVector 向量存储）
+//                .advisors(new QuestionAnswerAdvisor(pgVectorVectorStore))
+                // 应用自定义的 RAG 检索增强服务（文档查询器 + 上下文增强器）
+//                .advisors(
+//                        LoveAppRagCustomAdvisorFactory.createLoveAppRagCustomAdvisor(
+//                                loveAppVectorStore, "已婚"
+//                        )
+//                )
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();
