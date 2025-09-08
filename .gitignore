@@ -2,6 +2,7 @@
 application-local.yml
 application-prod.yml
 tmp
+/src/main/java/com/bear/bearaiagent/constant/
 
 
 HELP.md
