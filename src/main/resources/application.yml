@@ -18,6 +18,10 @@ spring:
       chat:
         options:
           model: qwen-plus
+    mcp:
+      client:
+        stdio:
+          servers-configuration: classpath:mcp-servers.json
   profiles:
     active: local
 server:
